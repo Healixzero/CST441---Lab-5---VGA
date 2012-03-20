@@ -66,7 +66,14 @@ architecture Structural of lab_5 is
    end component;
 
    -- wire declarations
-   signal internal_clk  : std_logic;
+   signal internal_clk        : std_logic;
+   signal internal_red        : std_logic;
+   signal internal_green      : std_logic;
+   signal internal_blue       : std_logic;
+   signal internal_row        : std_logic_vector ( 9 downto 0 );
+   signal internal_col        : std_logic_vector ( 9 downto 0 );
+   signal internal_char_addr  : std_logic_vector ( 5 downto 0 );
+   signal internal_ROM_MUX    : std_logic;
 
 begin
 
@@ -74,6 +81,40 @@ begin
       port map (  Clk_50Hz => Clk,
                   Clk_25Hz => internal_clk
                );
+
    vga_synch : VGA_Sync
+      port map (  clock_25Mhz    => internal_clk,
+                  red            => internal_red,
+                  green          => internal_green,
+                  blue           => internal_red,
+                  red_out        => red_out,
+                  green_out      => green_out,
+                  blue_out       => blue_out,
+                  horiz_sync_out => h_sync,
+                  vert_sync_out  => v_sync,
+                  pixel_row      => internal_row,
+                  pixel_column   => internal_col
+               );
+
+   Message_ROM : Msg_ROM
+      port map (  column         => internal_col ( 9 downto 3 ),
+                  char_address   => internal_char_addr
+               );
+      
+   Ralph_char_ROM : Char_ROM
+      port map (  character_address => internal_char_addr,
+                  font_row          => internal_row ( 2 downto 0 ),
+                  font_col          => internal_col ( 2 downto 0 ),
+                  rom_mux_output    => internal_ROM_MUX
+               );
+   Color_module : Color_Decoder
+      port map (  pixel => internal_ROM_MUX,
+                  fg    => foreground,
+                  bg    => background,
+                  red   => internal_red,
+                  green => internal_green,
+                  blue  => internal_blue
+               );
+   
 
 end Structural;

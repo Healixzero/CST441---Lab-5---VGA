@@ -46,11 +46,11 @@ architecture Structural of lab_5 is
    end component;
 
    -- Ralph's character decoder ( holds all characters, outputs RGB code )
-   component Char_ROM
-      port  (  character_address : std_logic_vector ( 5 downto 0 );
-               font_row          : std_logic_vector ( 2 downto 0 );
-               font_col          : std_logic_vector ( 2 downto 0 );
-               rom_mux_output    : std_logic
+   --    a is the input address for the 8-bits (one line) of each char
+   --    spo is the output, 8-bits representing a single line of a char
+   component CharROM
+      port  (  a     : std_logic_vector ( 9 downto 0 );
+               spo   : std_logic_vector ( 7 downto 0 )
             );
    end component;
 
@@ -72,8 +72,9 @@ architecture Structural of lab_5 is
    signal internal_blue       : std_logic;
    signal internal_row        : std_logic_vector ( 9 downto 0 );
    signal internal_col        : std_logic_vector ( 9 downto 0 );
-   signal internal_char_addr  : std_logic_vector ( 5 downto 0 );
+   signal internal_char_addr  : std_logic_vector ( 6 downto 0 );
    signal internal_ROM_MUX    : std_logic;
+   signal internal_spo        : std_logic_vector ( 7 downto 0 );
 
 begin
 
@@ -100,13 +101,28 @@ begin
       port map (  column         => internal_col ( 9 downto 3 ),
                   char_address   => internal_char_addr
                );
-      
-   Ralph_char_ROM : Char_ROM
-      port map (  character_address => internal_char_addr,
-                  font_row          => internal_row ( 2 downto 0 ),
-                  font_col          => internal_col ( 2 downto 0 ),
-                  rom_mux_output    => internal_ROM_MUX
+   
+   -- a is the upper 7 bits from the interal char_addr bus, and the lower 3 bits from the row index
+   Character_ROM : Char_ROM
+      port map (  a     => ( internal_char_add | internal_row ( 2 downto 0 ) ),
+                  spo   => internal_spo;
                );
+
+   -- 8-to-1 MUX that chooses one of the bits from the output of the ROM
+   process ( spo, internal_col )
+   begin
+      case ( internal_col ( 2 downto 0 ) ) is
+         when "000" => internal_ROM_MUX <= internal_spo[0];
+         when "001" => internal_ROM_MUX <= internal_spo[1];
+         when "010" => internal_ROM_MUX <= internal_spo[2];
+         when "011" => internal_ROM_MUX <= internal_spo[3];
+         when "100" => internal_ROM_MUX <= internal_spo[4];
+         when "101" => internal_ROM_MUX <= internal_spo[5];
+         when "110" => internal_ROM_MUX <= internal_spo[6];
+         when "111" => internal_ROM_MUX <= internal_spo[7];
+         when others => internal_ROM_MUX <= '0';
+   end process;
+
    Color_module : Color_Decoder
       port map (  pixel => internal_ROM_MUX,
                   fg    => foreground,

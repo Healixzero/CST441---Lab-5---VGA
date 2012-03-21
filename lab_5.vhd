@@ -9,8 +9,8 @@ entity lab_5 is
             green_out   : out std_logic;  -- T_12
             blue_out    : out std_logic;  -- R_11
             h_synch     : out std_logic;  -- R9
-            v_synch     : out std_logic;   -- T10
-				test1       : out std_logic_vector ( 2 downto 0 )
+            v_synch     : out std_logic   -- T10
+				--test1       : out std_logic_vector ( 2 downto 0 )
          );
 end lab_5;
 
@@ -83,6 +83,9 @@ architecture Structural of lab_5 is
    signal internal_char_addr  : std_logic_vector ( 9 downto 0 );
    signal internal_ROM_MUX    : std_logic;
    signal internal_spo        : std_logic_vector ( 7 downto 0 );
+	signal internal_spo_inv    : std_logic_vector ( 7 downto 0 );
+	signal internal_col_pad    : std_logic_vector ( 9 downto 0 );
+	signal internal_row_pad	   : std_logic_vector ( 9 downto 0 );
 
 begin
 
@@ -101,9 +104,13 @@ begin
                   blue_out       => blue_out,
                   horiz_sync_out => h_synch,
                   vert_sync_out  => v_synch,
-                  pixel_row      => internal_row,
-                  pixel_column   => internal_col
+                  pixel_row      => internal_row_pad,
+                  pixel_column   => internal_col_pad
                );
+	
+	-- make the characters larger
+	internal_row ( 5 downto 0 ) <= internal_row_pad ( 9 downto 4 );
+	internal_col ( 5 downto 0 ) <= internal_col_pad ( 9 downto 4 );
 
    Message_ROM : Msg_ROM
       port map (  column         => internal_col ( 9 downto 3 ),
@@ -119,9 +126,19 @@ begin
                   spo   => internal_spo
                );
 
+	-- reoder the internal_col bits
+	internal_spo_inv(0) <= internal_spo(7);
+	internal_spo_inv(1) <= internal_spo(6);
+	internal_spo_inv(2) <= internal_spo(5);
+	internal_spo_inv(3) <= internal_spo(4);
+	internal_spo_inv(4) <= internal_spo(3);
+	internal_spo_inv(5) <= internal_spo(2);
+	internal_spo_inv(6) <= internal_spo(1);
+	internal_spo_inv(7) <= internal_spo(0);
+	
    -- 8-to-1 MUX that chooses one of the bits from the output of the ROM
    DEMUX : MUX_8_1
-		port map	(	DATA_IN	=> internal_spo,
+		port map	(	DATA_IN	=> internal_spo_inv,
 						SEL_IN	=> internal_col ( 2 downto 0 ),
 						DATA_OUT	=> internal_ROM_MUX
 					);
@@ -135,6 +152,6 @@ begin
                   blue  => internal_blue
                );
 					
-   test1 <= internal_col ( 2 downto 0 );
+   --test1 <= internal_col ( 2 downto 0 );
 
 end Structural;

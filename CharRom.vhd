@@ -50,7 +50,7 @@ ARCHITECTURE CharRom_a OF CharRom IS
 -- synthesis translate_off
 component wrapped_CharRom
 	port (
-	a: IN std_logic_VECTOR(8 downto 0);
+	a: IN std_logic_VECTOR(9 downto 0);
 	spo: OUT std_logic_VECTOR(7 downto 0));
 end component;
 
@@ -84,7 +84,7 @@ end component;
 			c_default_data => "0",
 			c_has_spra => 0,
 			c_has_qspo_ce => 0,
-			c_addr_width => 9,
+			c_addr_width => 10,
 			c_has_qdpo => 0,
 			c_has_qspo_rst => 0);
 -- synthesis translate_on

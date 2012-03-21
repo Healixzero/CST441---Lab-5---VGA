@@ -9,7 +9,8 @@ entity lab_5 is
             green_out   : out std_logic;  -- T_12
             blue_out    : out std_logic;  -- R_11
             h_synch     : out std_logic;  -- R9
-            v_synch     : out std_logic   -- T10
+            v_synch     : out std_logic;   -- T10
+				test1       : out std_logic_vector ( 2 downto 0 )
          );
 end lab_5;
 
@@ -17,8 +18,8 @@ architecture Structural of lab_5 is
 
    -- Clock divider ( 50MHz -> 25MHz )
    component Clk_Div 
-      port  (  Clk_50Hz : in  std_logic;
-               Clk_25Hz : out std_logic
+      port  (  Clk_50MHz : in  std_logic;
+               Clk_25MHz : out std_logic
             );
    end component;
 
@@ -41,18 +42,25 @@ architecture Structural of lab_5 is
    -- message ROM ( holds characters to be printed )
    component Msg_ROM
       port  (  column         : in  std_logic_vector ( 6 downto 0 );
-               char_address   : out std_logic_vector ( 5 downto 0 )
+               char_address   : out std_logic_vector ( 6 downto 0 )
             );
    end component;
 
    -- Ralph's character decoder ( holds all characters, outputs RGB code )
    --    a is the input address for the 8-bits (one line) of each char
    --    spo is the output, 8-bits representing a single line of a char
-   component CharROM
-      port  (  a     : std_logic_vector ( 9 downto 0 );
-               spo   : std_logic_vector ( 7 downto 0 )
+   component Char_ROM
+      port  (  a     : in  std_logic_vector ( 9 downto 0 );
+               spo   : out std_logic_vector ( 7 downto 0 )
             );
    end component;
+
+	component MUX_8_1
+		port	(	DATA_IN  : in  std_logic_vector ( 7 downto 0 ); 
+					SEL_IN   : in  std_logic_vector ( 2 downto 0 );
+					DATA_OUT : out std_logic
+				);
+	end component;
 
    -- color decoder ( chooses color for pixel
    component Color_Decoder
@@ -72,56 +80,51 @@ architecture Structural of lab_5 is
    signal internal_blue       : std_logic;
    signal internal_row        : std_logic_vector ( 9 downto 0 );
    signal internal_col        : std_logic_vector ( 9 downto 0 );
-   signal internal_char_addr  : std_logic_vector ( 6 downto 0 );
+   signal internal_char_addr  : std_logic_vector ( 9 downto 0 );
    signal internal_ROM_MUX    : std_logic;
    signal internal_spo        : std_logic_vector ( 7 downto 0 );
 
 begin
 
    Clock_Halver : Clk_Div
-      port map (  Clk_50Hz => Clk,
-                  Clk_25Hz => internal_clk
+      port map (  Clk_50MHz => Clk,
+                  Clk_25MHz => internal_clk
                );
 
    vga_synch : VGA_Sync
       port map (  clock_25Mhz    => internal_clk,
                   red            => internal_red,
                   green          => internal_green,
-                  blue           => internal_red,
+                  blue           => internal_blue,
                   red_out        => red_out,
                   green_out      => green_out,
                   blue_out       => blue_out,
-                  horiz_sync_out => h_sync,
-                  vert_sync_out  => v_sync,
+                  horiz_sync_out => h_synch,
+                  vert_sync_out  => v_synch,
                   pixel_row      => internal_row,
                   pixel_column   => internal_col
                );
 
    Message_ROM : Msg_ROM
       port map (  column         => internal_col ( 9 downto 3 ),
-                  char_address   => internal_char_addr
+                  char_address   => internal_char_addr ( 9 downto 3 )
                );
    
+	-- put together the internal_char_add bus
+	internal_char_addr ( 2 downto 0 ) <= internal_row ( 2 downto 0 );
+	
    -- a is the upper 7 bits from the interal char_addr bus, and the lower 3 bits from the row index
    Character_ROM : Char_ROM
-      port map (  a     => ( internal_char_add | internal_row ( 2 downto 0 ) ),
-                  spo   => internal_spo;
+      port map (  a     => internal_char_addr,
+                  spo   => internal_spo
                );
 
    -- 8-to-1 MUX that chooses one of the bits from the output of the ROM
-   process ( spo, internal_col )
-   begin
-      case ( internal_col ( 2 downto 0 ) ) is
-         when "000" => internal_ROM_MUX <= internal_spo[0];
-         when "001" => internal_ROM_MUX <= internal_spo[1];
-         when "010" => internal_ROM_MUX <= internal_spo[2];
-         when "011" => internal_ROM_MUX <= internal_spo[3];
-         when "100" => internal_ROM_MUX <= internal_spo[4];
-         when "101" => internal_ROM_MUX <= internal_spo[5];
-         when "110" => internal_ROM_MUX <= internal_spo[6];
-         when "111" => internal_ROM_MUX <= internal_spo[7];
-         when others => internal_ROM_MUX <= '0';
-   end process;
+   DEMUX : MUX_8_1
+		port map	(	DATA_IN	=> internal_spo,
+						SEL_IN	=> internal_col ( 2 downto 0 ),
+						DATA_OUT	=> internal_ROM_MUX
+					);
 
    Color_module : Color_Decoder
       port map (  pixel => internal_ROM_MUX,
@@ -131,6 +134,7 @@ begin
                   green => internal_green,
                   blue  => internal_blue
                );
-   
+					
+   test1 <= internal_col ( 2 downto 0 );
 
 end Structural;

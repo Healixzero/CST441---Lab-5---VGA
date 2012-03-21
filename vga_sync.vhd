@@ -98,7 +98,16 @@ BEGIN
 
 END a;
 
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.all;
+
 PACKAGE VGA_SYNC_PKG IS
 	COMPONENT VGA_SYNC
+	
+	PORT(clock_25Mhz, red, green, blue		: IN	STD_LOGIC;
+		 red_out, green_out, blue_out, 
+		 horiz_sync_out, vert_sync_out		: OUT	STD_LOGIC;
+		 pixel_row, pixel_column			: OUT STD_LOGIC_VECTOR(9 DOWNTO 0));
+	
 	END COMPONENT;
 END VGA_SYNC_PKG;
